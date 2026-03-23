@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import "./App.css";
 import { songs } from "./data/songs";
 import type { Song } from "./models/song";
+import Flashcards from "./components/Flashcards";
 
 const STORAGE_KEY = "recent-song-id";
 
@@ -37,6 +38,7 @@ function App() {
   const [selectedLineId, setSelectedLineId] = useState<number>(1);
   const [showPinyin, setShowPinyin] = useState(true);
   const [showAnalysis, setShowAnalysis] = useState(false);
+  const [practiceType, setPracticeType] = useState<string | null>(null);
 
   const selectedSong = useMemo<Song | undefined>(
     () => songs.find((song) => song.id === selectedSongId) ?? songs[0],
@@ -107,6 +109,24 @@ function App() {
           )}
         </div>
 
+        <div className="practice-overview">
+          <h3>Practice</h3>
+          <p className="practice-desc">
+            Choose an exercise to practice this song.
+          </p>
+          <div className="practice-buttons">
+            <button onClick={() => setPracticeType("flashcards")}>
+              Flashcards
+            </button>
+            <button onClick={() => setPracticeType("gapfill")}>Gap-fill</button>
+            <button onClick={() => setPracticeType("karaoke")}>Karaoke</button>
+            <button onClick={() => setPracticeType("pronunciation")}>
+              Pronunciation
+            </button>
+            <button onClick={() => setPracticeType("vocab")}>Vocabulary</button>
+          </div>
+        </div>
+
         {selectedSong?.analysis && (
           <div className="analysis-section">
             <button
@@ -117,6 +137,7 @@ function App() {
                 ? "Ẩn phân tích ý nghĩa ▲"
                 : "Xem phân tích ý nghĩa ▼"}
             </button>
+
             {showAnalysis && (
               <div className="analysis-body">
                 {selectedSong.analysis.split(/\n{2,}/).map((para, i) => (
@@ -192,6 +213,38 @@ function App() {
             </p>
           )}
         </section>
+
+        {practiceType === "flashcards" && selectedSong && (
+          <Flashcards
+            vocab={selectedSong.lines.flatMap((l) => l.vocabulary)}
+            songId={selectedSong.id}
+            onClose={() => setPracticeType(null)}
+          />
+        )}
+
+        {practiceType && practiceType !== "flashcards" && (
+          <div
+            className="flashcards-page"
+            onClick={() => setPracticeType(null)}
+          >
+            <div
+              className="flashcards-shell"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <header className="flash-header">
+                <h2>
+                  {practiceType.charAt(0).toUpperCase() + practiceType.slice(1)}
+                </h2>
+                <div className="flash-actions">
+                  <button onClick={() => setPracticeType(null)}>Close</button>
+                </div>
+              </header>
+              <div className="flash-empty">
+                This practice type is a placeholder. I can implement it next.
+              </div>
+            </div>
+          </div>
+        )}
       </section>
     </main>
   );
