@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { VocabularyItem } from "../models/song";
 
 type Props = {
@@ -7,44 +7,50 @@ type Props = {
   onClose?: () => void;
 };
 
+function deterministicSwapIndex(seed: string, i: number): number {
+  let hash = 2166136261;
+  for (let k = 0; k < seed.length; k++) {
+    hash ^= seed.charCodeAt(k);
+    hash = Math.imul(hash, 16777619);
+  }
+  hash ^= i;
+  hash = Math.imul(hash, 16777619);
+  return Math.abs(hash) % (i + 1);
+}
+
 export default function Flashcards({ vocab, songId, onClose }: Props) {
   const STORAGE_KEY = `flashcards-known-${songId}`;
   const [index, setIndex] = useState(0);
   const [showBack, setShowBack] = useState(false);
-  const [known, setKnown] = useState<Record<string, boolean>>({});
+  const [known, setKnown] = useState<Record<string, boolean>>(() => {
+    if (typeof window === "undefined") {
+      return {};
+    }
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) {
+      return {};
+    }
+    try {
+      return JSON.parse(raw) as Record<string, boolean>;
+    } catch {
+      return {};
+    }
+  });
   const [shuffled, setShuffled] = useState(false);
-  const [showPinyin, setShowPinyin] = useState(true);
-  const [showRef, setShowRef] = useState(true);
-
-  useEffect(() => {
-    const raw =
-      typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
-    if (raw) {
-      try {
-        setKnown(JSON.parse(raw));
-      } catch {
-        // ignore
-      }
+  const [showPinyin, setShowPinyin] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
     }
-  }, [STORAGE_KEY]);
-
-  useEffect(() => {
-    const key = `flashcards-show-pinyin-${songId}`;
-    const raw =
-      typeof window !== "undefined" ? localStorage.getItem(key) : null;
-    if (raw !== null) {
-      setShowPinyin(raw === "1");
+    const raw = localStorage.getItem(`flashcards-show-pinyin-${songId}`);
+    return raw === null ? true : raw === "1";
+  });
+  const [showRef, setShowRef] = useState(() => {
+    if (typeof window === "undefined") {
+      return true;
     }
-  }, [songId]);
-
-  useEffect(() => {
-    const key = `flashcards-show-ref-${songId}`;
-    const raw =
-      typeof window !== "undefined" ? localStorage.getItem(key) : null;
-    if (raw !== null) {
-      setShowRef(raw === "1");
-    }
-  }, [songId]);
+    const raw = localStorage.getItem(`flashcards-show-ref-${songId}`);
+    return raw === null ? true : raw === "1";
+  });
 
   useEffect(() => {
     const key = `flashcards-show-pinyin-${songId}`;
@@ -69,18 +75,14 @@ export default function Flashcards({ vocab, songId, onClose }: Props) {
   const deck = useMemo(() => {
     const items = vocab.map((v, i) => ({ ...v, _id: `${v.term}-${i}` }));
     if (shuffled) {
+      const seed = `${songId}-${vocab.length}`;
       for (let i = items.length - 1; i > 0; i--) {
-        const j = Math.floor(Math.random() * (i + 1));
+        const j = deterministicSwapIndex(seed, i);
         [items[i], items[j]] = [items[j], items[i]];
       }
     }
     return items;
-  }, [vocab, shuffled]);
-
-  useEffect(() => {
-    setIndex(0);
-    setShowBack(false);
-  }, [songId, vocab.length]);
+  }, [vocab, shuffled, songId]);
 
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
@@ -94,12 +96,11 @@ export default function Flashcards({ vocab, songId, onClose }: Props) {
         e.preventDefault();
         setShowBack((s) => !s);
       } else if (e.key.toLowerCase() === "k") {
-        const term =
-          deck[index] && (deck[index] as any).term
-            ? (deck[index] as any).term
-            : "";
-        const id = `${term}-${index}`;
-        setKnown((k) => ({ ...k, [id]: !k[id] }));
+        const active = deck[index];
+        if (active) {
+          const id = `${active.term}-${index}`;
+          setKnown((k) => ({ ...k, [id]: !k[id] }));
+        }
       } else if (e.key === "Escape") {
         if (onClose) onClose();
       }

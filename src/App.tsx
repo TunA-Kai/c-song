@@ -216,6 +216,7 @@ function App() {
 
         {practiceType === "flashcards" && selectedSong && (
           <Flashcards
+            key={selectedSong.id}
             vocab={selectedSong.lines.flatMap((l) => l.vocabulary)}
             songId={selectedSong.id}
             onClose={() => setPracticeType(null)}
