@@ -1,7 +1,7 @@
-import type { Song, SongLine, VocabularyItem } from "../models/song";
+import type { Song, SongLine, VocabularyItem } from '../models/song';
 
 function parseVocabulary(line: string): VocabularyItem | null {
-  const cleanLine = line.trim().replace(/^-\s*/, "");
+  const cleanLine = line.trim().replace(/^-\s*/, '');
   const fullPattern = /^(.+?)\s*\(([^)]+)\)\s*(?:\[([^\]]+)\])?\s*[—-]\s*(.+)$/;
   const fullMatch = cleanLine.match(fullPattern);
   if (fullMatch) {
@@ -10,7 +10,7 @@ function parseVocabulary(line: string): VocabularyItem | null {
       term: term.trim(),
       pinyin: pinyin.trim(),
       level: level?.trim(),
-      meaning: meaning.trim().replace(/\.$/, ""),
+      meaning: meaning.trim().replace(/\.$/, ''),
     };
   }
 
@@ -23,7 +23,7 @@ function parseVocabulary(line: string): VocabularyItem | null {
   const [, term, meaning] = fallbackMatch;
   return {
     term: term.trim(),
-    meaning: meaning.trim().replace(/\.$/, ""),
+    meaning: meaning.trim().replace(/\.$/, ''),
   };
 }
 
@@ -38,11 +38,17 @@ function extractTitle(markdown: string, fallbackName: string): string {
   const titleMatch = markdown.match(/^#\s+(.+)$/m);
   if (titleMatch) {
     const value = titleMatch[1].trim();
-    if (value && !value.toLowerCase().includes("song title")) {
+    if (value && !value.toLowerCase().includes('song title')) {
       return value;
     }
   }
   return fallbackName;
+}
+
+function extractVietnameseTitle(markdown: string): string | undefined {
+  const match = markdown.match(/^Vietnamese Title:\s*(.+)$/m);
+  const value = match?.[1]?.trim();
+  return value ? value : undefined;
 }
 
 function parseLineBlocks(markdown: string): SongLine[] {
@@ -78,53 +84,53 @@ function parseLineBlocks(markdown: string): SongLine[] {
         continue;
       }
 
-      if (trimmed.startsWith("- Pinyin:")) {
+      if (trimmed.startsWith('- Pinyin:')) {
         inVocabulary = false;
-        line.pinyin = trimmed.replace("- Pinyin:", "").trim();
+        line.pinyin = trimmed.replace('- Pinyin:', '').trim();
         continue;
       }
 
-      if (trimmed.startsWith("- Dịch:")) {
+      if (trimmed.startsWith('- Dịch:')) {
         inVocabulary = false;
         line.translation = trimmed
-          .replace("- Dịch:", "")
+          .replace('- Dịch:', '')
           .trim()
-          .replace(/^"|"$/g, "");
+          .replace(/^"|"$/g, '');
         continue;
       }
 
-      if (trimmed.startsWith("- Từ vựng:")) {
+      if (trimmed.startsWith('- Từ vựng:')) {
         inVocabulary = true;
         continue;
       }
 
-      if (trimmed.startsWith("- Ngữ pháp:")) {
+      if (trimmed.startsWith('- Ngữ pháp:')) {
         inVocabulary = false;
-        line.grammar = trimmed.replace("- Ngữ pháp:", "").trim();
+        line.grammar = trimmed.replace('- Ngữ pháp:', '').trim();
         continue;
       }
 
-      if (trimmed.startsWith("- Ghi chú:")) {
+      if (trimmed.startsWith('- Ghi chú:')) {
         inVocabulary = false;
-        line.note = trimmed.replace("- Ghi chú:", "").trim();
+        line.note = trimmed.replace('- Ghi chú:', '').trim();
         continue;
       }
 
-      if (trimmed.startsWith("- Sắc thái:")) {
+      if (trimmed.startsWith('- Sắc thái:')) {
         inVocabulary = false;
-        line.toneStyle = trimmed.replace("- Sắc thái:", "").trim();
+        line.toneStyle = trimmed.replace('- Sắc thái:', '').trim();
         continue;
       }
 
-      if (trimmed.startsWith("- Thanh điệu:")) {
+      if (trimmed.startsWith('- Thanh điệu:')) {
         inVocabulary = false;
-        line.tone = trimmed.replace("- Thanh điệu:", "").trim();
+        line.tone = trimmed.replace('- Thanh điệu:', '').trim();
         continue;
       }
 
-      if (trimmed.startsWith("- Văn hóa:")) {
+      if (trimmed.startsWith('- Văn hóa:')) {
         inVocabulary = false;
-        line.culture = trimmed.replace("- Văn hóa:", "").trim();
+        line.culture = trimmed.replace('- Văn hóa:', '').trim();
         continue;
       }
 
@@ -157,6 +163,7 @@ export function parseSongMarkdown(
   return {
     id: fileNameWithoutExtension,
     title: extractTitle(markdown, fileNameWithoutExtension),
+    vietnameseTitle: extractVietnameseTitle(markdown),
     youtubeUrl: extractYoutubeUrl(markdown),
     lines: parseLineBlocks(markdown),
     analysis: extractAnalysis(markdown),

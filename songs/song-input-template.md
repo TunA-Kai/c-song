@@ -1,4 +1,6 @@
-# 歌曲标题 / Song Title in English
+# 歌曲标题 (中文)
+
+Vietnamese Title: Tên bài hát (Tiếng Việt)
 
 YouTube: https://www.youtube.com/watch?v=XXXXX
 

@@ -21,6 +21,7 @@ export type SongLine = {
 export type Song = {
   id: string;
   title: string;
+  vietnameseTitle?: string;
   youtubeUrl?: string;
   lines: SongLine[];
   analysis?: string;
