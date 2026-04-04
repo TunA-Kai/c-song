@@ -14,6 +14,11 @@ type YtPlayer = {
   destroy: () => void;
   getCurrentTime: () => number;
   getPlayerState: () => YtPlayerState;
+  cueVideoById: (options: {
+    videoId: string;
+    startSeconds?: number;
+    endSeconds?: number;
+  }) => void;
   loadVideoById: (options: {
     videoId: string;
     startSeconds?: number;
@@ -137,7 +142,7 @@ export default function YouTubeLoopPlayer({
                 typeof start === "number" &&
                 typeof end === "number"
               ) {
-                player.loadVideoById({
+                player.cueVideoById({
                   videoId: currentVideoId,
                   startSeconds: start,
                   endSeconds: end,
@@ -145,7 +150,7 @@ export default function YouTubeLoopPlayer({
                 return;
               }
 
-              player.loadVideoById({
+              player.cueVideoById({
                 videoId: currentVideoId,
               });
             },
@@ -191,7 +196,7 @@ export default function YouTubeLoopPlayer({
       typeof loopStart === "number" &&
       typeof loopEnd === "number"
     ) {
-      player.loadVideoById({
+      player.cueVideoById({
         videoId,
         startSeconds: loopStart,
         endSeconds: loopEnd,
@@ -199,7 +204,7 @@ export default function YouTubeLoopPlayer({
       return;
     }
 
-    player.loadVideoById({ videoId });
+    player.cueVideoById({ videoId });
   }, [videoId, loopEnabled, loopStart, loopEnd]);
 
   useEffect(() => {
@@ -237,7 +242,7 @@ export default function YouTubeLoopPlayer({
   return (
     <div
       ref={containerRef}
-      className="youtube-player-host"
+      className="h-full w-full"
       title={title}
       aria-label={title}
     />
