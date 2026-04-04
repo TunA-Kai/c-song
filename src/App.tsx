@@ -3,10 +3,11 @@ import "./App.css";
 import { songs } from "./data/songs";
 import type { Song } from "./models/song";
 import Flashcards from "./components/Flashcards";
+import YouTubeLoopPlayer from "./components/YouTubeLoopPlayer";
 
 const STORAGE_KEY = "recent-song-id";
 
-function toEmbedUrl(youtubeUrl?: string): string | undefined {
+function extractYoutubeVideoId(youtubeUrl?: string): string | undefined {
   if (!youtubeUrl) {
     return undefined;
   }
@@ -15,30 +16,81 @@ function toEmbedUrl(youtubeUrl?: string): string | undefined {
     const url = new URL(youtubeUrl);
     if (url.hostname.includes("youtu.be")) {
       const id = url.pathname.replace("/", "");
-      return id ? `https://www.youtube.com/embed/${id}` : undefined;
+      return id || undefined;
     }
 
     if (url.searchParams.get("v")) {
-      return `https://www.youtube.com/embed/${url.searchParams.get("v")}`;
+      return url.searchParams.get("v") ?? undefined;
     }
 
     const embed = url.pathname.match(/\/embed\/([^/?]+)/);
-    return embed ? `https://www.youtube.com/embed/${embed[1]}` : undefined;
+    return embed ? embed[1] : undefined;
   } catch {
     return undefined;
   }
 }
 
+function parseTimeInput(value: string): number | undefined {
+  const cleaned = value.trim();
+  if (!cleaned) {
+    return undefined;
+  }
+
+  if (/^\d+$/.test(cleaned)) {
+    return Number(cleaned);
+  }
+
+  const parts = cleaned.split(":").map((part) => part.trim());
+  if (parts.some((part) => !/^\d+$/.test(part))) {
+    return undefined;
+  }
+
+  if (parts.length === 2) {
+    const [minutes, seconds] = parts.map(Number);
+    return minutes * 60 + seconds;
+  }
+
+  if (parts.length === 3) {
+    const [hours, minutes, seconds] = parts.map(Number);
+    return hours * 3600 + minutes * 60 + seconds;
+  }
+
+  return undefined;
+}
+
+function formatSeconds(totalSeconds: number): string {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours}:${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+  }
+
+  return `${minutes}:${String(seconds).padStart(2, "0")}`;
+}
+
 function App() {
   const initialRecent =
     typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null;
+  const initialSong =
+    songs.find((song) => song.id === (initialRecent ?? "")) ?? songs[0];
   const [selectedSongId, setSelectedSongId] = useState<string>(
-    initialRecent ?? songs[0]?.id ?? "",
+    initialSong?.id ?? "",
   );
-  const [selectedLineId, setSelectedLineId] = useState<number>(1);
+  const [selectedLineId, setSelectedLineId] = useState<number>(
+    initialSong?.lines[0]?.id ?? 1,
+  );
   const [showPinyin, setShowPinyin] = useState(true);
   const [showAnalysis, setShowAnalysis] = useState(false);
   const [practiceType, setPracticeType] = useState<string | null>(null);
+  const [loopStartInput, setLoopStartInput] = useState("1:30");
+  const [loopEndInput, setLoopEndInput] = useState("2:30");
+  const [appliedLoop, setAppliedLoop] = useState<{
+    start: number;
+    end: number;
+  } | null>(null);
+  const [loopError, setLoopError] = useState<string | null>(null);
 
   const selectedSong = useMemo<Song | undefined>(
     () => songs.find((song) => song.id === selectedSongId) ?? songs[0],
@@ -64,14 +116,42 @@ function App() {
   );
 
   useEffect(() => {
-    if (!selectedSong) {
+    if (!selectedSongId) {
       return;
     }
-    localStorage.setItem(STORAGE_KEY, selectedSong.id);
-    setSelectedLineId(selectedSong.lines[0]?.id ?? 1);
-  }, [selectedSong?.id]);
+    localStorage.setItem(STORAGE_KEY, selectedSongId);
+  }, [selectedSongId]);
 
-  const embedUrl = toEmbedUrl(selectedSong?.youtubeUrl);
+  const videoId = extractYoutubeVideoId(selectedSong?.youtubeUrl);
+  const loopStart = parseTimeInput(loopStartInput);
+  const loopEnd = parseTimeInput(loopEndInput);
+  const isLoopApplied = appliedLoop !== null;
+
+  function applyLoop() {
+    if (typeof loopStart !== "number" || typeof loopEnd !== "number") {
+      setLoopError("Time format is invalid. Use mm:ss, hh:mm:ss, or seconds.");
+      return;
+    }
+    if (loopStart >= loopEnd) {
+      setLoopError("Start time must be earlier than end time.");
+      return;
+    }
+    setLoopError(null);
+    setAppliedLoop({ start: loopStart, end: loopEnd });
+  }
+
+  function clearLoop() {
+    setAppliedLoop(null);
+    setLoopError(null);
+  }
+
+  function handleSongChange(nextSongId: string) {
+    setSelectedSongId(nextSongId);
+    const nextSong = songs.find((song) => song.id === nextSongId);
+    setSelectedLineId(nextSong?.lines[0]?.id ?? 1);
+    setAppliedLoop(null);
+    setLoopError(null);
+  }
 
   return (
     <main className="layout">
@@ -86,7 +166,7 @@ function App() {
           <select
             id="song-select"
             value={selectedSong?.id ?? ""}
-            onChange={(event) => setSelectedSongId(event.target.value)}
+            onChange={(event) => handleSongChange(event.target.value)}
           >
             {orderedSongs.map((song) => (
               <option key={song.id} value={song.id}>
@@ -97,15 +177,60 @@ function App() {
         </div>
 
         <div className="video-box">
-          {embedUrl ? (
-            <iframe
-              src={embedUrl}
+          {videoId ? (
+            <YouTubeLoopPlayer
+              videoId={videoId}
+              loopEnabled={isLoopApplied}
+              loopStart={appliedLoop?.start}
+              loopEnd={appliedLoop?.end}
               title={`YouTube player for ${selectedSong?.title ?? "song"}`}
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              allowFullScreen
             />
           ) : (
             <p className="empty">No YouTube URL found for this song.</p>
+          )}
+        </div>
+
+        <div className="loop-panel">
+          <h3>Loop a segment (A-B repeat)</h3>
+          <form
+            className="loop-controls"
+            onSubmit={(event) => {
+              event.preventDefault();
+              applyLoop();
+            }}
+          >
+            <label>
+              Start
+              <input
+                value={loopStartInput}
+                onChange={(event) => setLoopStartInput(event.target.value)}
+                placeholder="1:30"
+              />
+            </label>
+            <label>
+              End
+              <input
+                value={loopEndInput}
+                onChange={(event) => setLoopEndInput(event.target.value)}
+                placeholder="2:30"
+              />
+            </label>
+            <button type="submit">Apply loop</button>
+            <button type="button" className="ghost" onClick={clearLoop}>
+              Clear
+            </button>
+          </form>
+          {loopError ? (
+            <p className="loop-note loop-error">{loopError}</p>
+          ) : isLoopApplied && appliedLoop ? (
+            <p className="loop-note">
+              Looping {formatSeconds(appliedLoop.start)} to{" "}
+              {formatSeconds(appliedLoop.end)}.
+            </p>
+          ) : (
+            <p className="loop-note">
+              Set a start/end, then press Apply loop to replay that section.
+            </p>
           )}
         </div>
 
