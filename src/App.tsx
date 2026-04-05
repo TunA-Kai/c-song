@@ -370,9 +370,14 @@ function App() {
                 <ul className="m-0 list-disc pl-5">
                   {selectedLine.vocabulary.map((item, index) => (
                     <li key={`${item.term}-${index}`} className="mb-1 text-sm">
-                      <span className="font-semibold text-(--text-h)">
+                      <a
+                        href={`https://hanzii.net/search/word/${encodeURIComponent(item.term)}?hl=vi`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="font-semibold no-underline hover:underline"
+                      >
                         {item.term}
-                      </span>
+                      </a>
                       <span className="text-(--text)">
                         {item.pinyin ? ` (${item.pinyin})` : ""}
                       </span>
