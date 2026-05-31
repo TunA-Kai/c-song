@@ -1,73 +1,74 @@
-# React + TypeScript + Vite
+# C-Song — Learn Chinese Through Songs
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A personal study app that displays annotated Chinese song lyrics with pinyin, Vietnamese translations, vocabulary, and grammar notes. Built with React + TypeScript + Vite.
 
-Currently, two official plugins are available:
+## Quick Start
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+Build for production: `npm run build`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+---
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## How to Add a New Song
+
+### 1. Prepare the input file
+
+Create a new `.md` file in the `songs/` folder. Use the template at `songs/song-input-template.md`:
+
+```markdown
+# 歌曲标题 (中文)
+
+Vietnamese Title: Tên bài hát (Tiếng Việt)
+
+YouTube: https://www.youtube.com/watch?v=XXXXX
+
+## Lyrics
+
+歌词第一行
+歌词第二行
+歌词第三行
+```
+
+**Rules:**
+
+- The `# Title` must be in Chinese
+- Include the YouTube URL for the embedded player
+- Paste all lyric lines under `## Lyrics` — one line per row, no numbering needed
+- Only include Chinese lyrics (skip any non-Chinese lines)
+
+### 2. Generate annotations with the AI agent
+
+Open VS Code with Copilot Chat and invoke the **Chinese Song Annotator** agent:
+
+1. Open the chat panel (⌘⇧I or Ctrl+Shift+I)
+2. Type `@Chinese Song Annotator` and attach/mention your new song input file
+3. The agent will overwrite the input file in-place with full annotations:
+   - Table of contents with anchor links
+   - Pinyin romanization for each line
+   - Vietnamese translation
+   - Vocabulary with HSK level tags
+   - Grammar / usage notes
+   - Cultural context (when relevant)
+   - A Vietnamese analysis section at the end
+
+### 3. Register the song in the app
+
+Add an import and entry in `src/data/songs.ts` so the app picks up the new song.
+
+---
+
+## Project Structure
+
+```
+songs/              — Song markdown files (input + annotated)
+src/
+  components/       — React UI components
+  data/songs.ts     — Song registry (imports all .md files)
+  lib/              — Markdown parser & utilities
+  models/           — TypeScript interfaces
+.github/agents/     — AI agent definitions
 ```
